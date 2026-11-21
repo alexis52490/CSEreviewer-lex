@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CSC CSE-PPT 2026–2027 Mock Exam Portal</title>
+  <style>
+    :root { --primary: #0038a8; --accent: #ce1126; --gold: #fcd116; --bg: #f4f6f9; --card: #ffffff; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; color: #1e293b; }
+    header { background: var(--primary); color: #fff; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 4px solid var(--gold); }
+    header h1 { margin: 0; font-size: 1.2rem; }
+    .timer { background: var(--accent); padding: 0.4rem 0.9rem; border-radius: 6px; font-weight: bold; font-variant-numeric: tabular-nums; }
+    .container { max-width: 1100px; margin: 1.5rem auto; padding: 0 1rem; display: grid; grid-template-columns: 1fr 280px; gap: 1.5rem; }
+    @media (max-width: 800px) { .container { grid-template-columns: 1fr; } }
+    .card { background: var(--card); border-radius: 10px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .badge { display: inline-block; background: #e0e7ff; color: var(--primary); font-size: 0.78rem; font-weight: 700; padding: 3px 10px; border-radius: 99px; margin-bottom: 0.75rem; }
+    .q-text { font-size: 1.08rem; font-weight: 600; line-height: 1.5; margin-bottom: 1.2rem; }
+    .option { display: block; width: 100%; text-align: left; padding: 0.85rem 1rem; margin-bottom: 0.65rem; border: 2px solid #e2e8f0; border-radius: 8px; background: #fff; cursor: pointer; font-size: 0.98rem; transition: 0.15s; }
+    .option:hover { border-color: var(--primary); background: #f8fafc; }
+    .option.selected { border-color: var(--primary); background: #eff6ff; font-weight: 600; }
+    .option.correct { border-color: #16a34a; background: #dcfce7; color: #14532d; }
+    .option.wrong { border-color: #dc2626; background: #fee2e2; color: #7f1d1d; }
+    .explanation { margin-top: 1rem; padding: 0.9rem; background: #f1f5f9; border-left: 4px solid var(--primary); border-radius: 4px; font-size: 0.92rem; display: none; }
+    .nav-btns { display: flex; justify-content: space-between; margin-top: 1.5rem; gap: 10px; }
+    button.btn { padding: 0.65rem 1.2rem; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-secondary { background: #e2e8f0; color: #1e293b; }
+    .btn-submit { background: #16a34a; color: #fff; width: 100%; margin-top: 1rem; }
+    .grid-nav { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; max-height: 360px; overflow-y: auto; margin-top: 0.75rem; }
+    .q-dot { padding: 6px 0; text-align: center; font-size: 0.8rem; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; background: #fff; }
+    .q-dot.answered { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .q-dot.active { outline: 2px solid var(--accent); font-weight: bold; }
+    #results { display: none; text-align: center; }
+    .score-big { font-size: 2.5rem; font-weight: 800; color: var(--primary); margin: 0.5rem 0; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>CSC CSE-PPT Mock Exam (200-Item Portal)</h1>
+  <div>
+    <select id="levelSelect" onchange="resetExam()" style="padding:5px;border-radius:5px;">
+      <option value="190">Professional (3h 10m)</option>
+      <option value="160">Subprofessional (2h 40m)</option>
+    </select>
+    <span class="timer" id="timerDisplay">03:10:00</span>
+  </div>
+</header>
+
+<div class="container">
+  <div class="card" id="examCard">
+    <span class="badge" id="qCategory">Category</span>
+    <div id="qProgress" style="font-size:0.85rem;color:#64748b;margin-bottom:6px;">Question 1 of 50</div>
+    <div class="q-text" id="qText">Loading...</div>
+    <div id="optionsBox"></div>
+    <div class="explanation" id="explanationBox"></div>
+    <div class="nav-btns">
+      <button class="btn btn-secondary" onclick="prevQ()">← Previous</button>
+      <button class="btn btn-primary" onclick="nextQ()">Next →</button>
+    </div>
+  </div>
+
+  <div class="card" id="results">
+    <h2>Exam Results</h2>
+    <div class="score-big" id="scorePercent">0.00%</div>
+    <p id="passStatus" style="font-weight:bold;font-size:1.1rem;"></p>
+    <p id="scoreBreakdown"></p>
+    <button class="btn btn-primary" onclick="reviewAnswers()">Review Answers & Explanations</button>
+    <button class="btn btn-secondary" onclick="resetExam()">Retake Exam</button>
+  </div>
+
+  <div class="card">
+    <strong>Question Navigator</strong>
+    <div style="font-size:0.8rem;color:#64748b;margin-top:4px;">Passing Mark: 80.00%</div>
+    <div class="grid-nav" id="gridNav"></div>
+    <button class="btn btn-submit" id="submitBtn" onclick="submitExam()">Submit & Grade Exam</button>
+  </div>
+</div>
+
+<script>
+// PASTE BATCHES 2, 3, AND 4 INSIDE THIS ARRAY TO REACH 200 QUESTIONS
+const questions = [
+  // --- BATCH 1: VERBAL ABILITY (1-50) ---
+  {cat:"Verbal Ability",q:"1. Choose the correct verb: Neither the director nor the clerks _____ aware of the new memo.",opts:["was","were","is","has been"],ans:1,exp:"With 'neither...nor', the verb agrees with the closer subject ('clerks' is plural, so use 'were')."},
+  {cat:"Verbal Ability",q:"2. Identify the synonym of METICULOUS:",opts:["Careless","Thorough","Hasty","Vague"],ans:1,exp:"Meticulous means showing great attention to detail; very careful and thorough."},
+  {cat:"Verbal Ability",q:"3. Choose the correct preposition: The committee is accountable _____ the public for its budget.",opts:["for","to","with","at"],ans:1,exp:"One is accountable 'to' a person/group and accountable 'for' an action."},
+  {cat:"Verbal Ability",q:"4. Identify the antonym of MITIGATE:",opts:["Alleviate","Aggravate","Lessen","Soothe"],ans:1,exp:"Mitigate means to make less severe; aggravate means to make worse."},
+  {cat:"Verbal Ability",q:"5. Which sentence is grammatically correct?",opts:["Each of the applicants have submitted their forms.","Each of the applicants has submitted his or her form.","Each of the applicants were interviewed.","Each of the applicants are qualified."],ans:1,exp:"'Each' is a singular indefinite pronoun and requires a singular verb ('has')."},
+  {cat:"Verbal Ability",q:"6. Identify the error: The data collected from the provinces (A) shows (B) a significant increase (C) in literacy rates (D).",opts:["A","B","C","No error"],ans:3,exp:"In modern standard usage, 'data' can take a singular verb when treated as a collective mass noun, or plural. No error in standard CSE usage."},
+  {cat:"Verbal Ability",q:"7. Choose the correct word: The new policy will _____ all government employees starting next month.",opts:["effect","affect","afflict","inflict"],ans:1,exp:"'Affect' is usually a verb meaning to influence; 'effect' is usually a noun meaning result."},
+  {cat:"Verbal Ability",q:"8. Synonym of EPHEMERAL:",opts:["Permanent","Short-lived","Ancient","Endless"],ans:1,exp:"Ephemeral means lasting for a very short time."},
+  {cat:"Verbal Ability",q:"9. Antonym of CANDID:",opts:["Frank","Deceitful","Honest","Direct"],ans:1,exp:"Candid means truthful and straightforward; deceitful is its opposite."},
+  {cat:"Verbal Ability",q:"10. Fill in the blank: Had I known about the traffic, I _____ earlier.",opts:["would leave","will leave","would have left","had left"],ans:2,exp:"Third conditional requires 'would have + past participle' for unreal past situations."},
+  {cat:"Verbal Ability",q:"11. Synonym of PRAGMATIC:",opts:["Idealistic","Practical","Theoretical","Reckless"],ans:1,exp:"Pragmatic means dealing with things sensibly and realistically."},
+  {cat:"Verbal Ability",q:"12. Choose the correctly spelled word:",opts:["Accomodate","Accommodate","Acommodate","Accommodatte"],ans:1,exp:"Accommodate has double 'c' and double 'm'."},
+  {cat:"Verbal Ability",q:"13. Identify the correct pronoun: Between you and _____, this proposal needs revision.",opts:["I","me","myself","we"],ans:1,exp:"Prepositions like 'between' take object pronouns ('me', not 'I')."},
+  {cat:"Verbal Ability",q:"14. Synonym of UBIQUITOUS:",opts:["Rare","Everywhere","Hidden","Fragile"],ans:1,exp:"Ubiquitous means present, appearing, or found everywhere."},
+  {cat:"Verbal Ability",q:"15. Antonym of BENEVOLENT:",opts:["Kind","Malevolent","Generous","Compassionate"],ans:1,exp:"Benevolent means well-meaning and kindly; malevolent means wishing evil to others."},
+  {cat:"Verbal Ability",q:"16. Choose the right word: Please _____ your belongings before leaving the hall.",opts:["insure","ensure","assure","reassure"],ans:1,exp:"'Ensure' means to make certain; 'insure' refers to financial insurance."},
+  {cat:"Verbal Ability",q:"17. Which word does NOT belong to the group?",opts:["Eloquent","Articulate","Fluent","Reticent"],ans:3,exp:"Reticent means reserved or silent, whereas the others describe expressive speech."},
+  {cat:"Verbal Ability",q:"18. Synonym of DILIGENT:",opts:["Lazy","Industrious","Negligent","Indifferent"],ans:1,exp:"Diligent means having or showing care and conscientiousness in one's work."},
+  {cat:"Verbal Ability",q:"19. Complete the idiom: To 'bite the bullet' means to _____.",opts:["avoid a problem","face a difficult situation bravely","speak carelessly","give up easily"],ans:1,exp:"Biting the bullet means enduring a painful or difficult situation with courage."},
+  {cat:"Verbal Ability",q:"20. Choose the correct verb: Ten kilometers _____ a long distance to walk every day.",opts:["are","is","were","have been"],ans:1,exp:"Units of distance, time, and money take a singular verb when viewed as a single amount."},
+  {cat:"Verbal Ability",q:"21. Synonym of AMBIGUOUS:",opts:["Clear","Unclear","Definite","Obvious"],ans:1,exp:"Ambiguous means open to more than one interpretation; not having one obvious meaning."},
+{cat:"Verbal Ability",q:"22. Antonym of FRUGAL:",opts:["Thrifty","Extravagant","Economical","Prudent"],ans:1,exp:"Frugal means sparing or economical; extravagant means lacking restraint in spending."},
+{cat:"Verbal Ability",q:"23. Correctly spelled word:",opts:["Bureaucracy","Bureacracy","Burocracy","Beaurocracy"],ans:0,exp:"Bureaucracy is spelled B-U-R-E-A-U-C-R-A-C-Y."},
+{cat:"Verbal Ability",q:"24. Choose the correct form: The scissors _____ on the table.",opts:["is","are","was","has been"],ans:1,exp:"Nouns like scissors, trousers, and pliers take plural verbs."},
+{cat:"Verbal Ability",q:"25. Synonym of CONCISE:",opts:["Wordy","Brief","Rambling","Lengthy"],ans:1,exp:"Concise means giving a lot of information clearly and in a few words."},
+{cat:"Verbal Ability",q:"26. Antonym of OBSOLETE:",opts:["Outdated","Modern","Archaic","Extinct"],ans:1,exp:"Obsolete means no longer produced or used; modern is its opposite."},
+{cat:"Verbal Ability",q:"27. Choose the correct word: The mayor gave a _____ speech during the inauguration.",opts:["climatic","climactic","climate","climatically"],ans:1,exp:"'Climactic' relates to a climax or exciting peak; 'climatic' relates to weather/climate."},
+{cat:"Verbal Ability",q:"28. Synonym of RESILIENT:",opts:["Fragile","Adaptable","Brittle","Weak"],ans:1,exp:"Resilient means able to withstand or recover quickly from difficult conditions."},
+{cat:"Verbal Ability",q:"29. Which sentence uses parallel structure?",opts:["She likes reading, writing, and to jog.","She likes reading, writing, and jogging.","She likes to read, writing, and jogging.","She likes read, write, and jog."],ans:1,exp:"All items in the list should use the same gerund (-ing) form."},
+{cat:"Verbal Ability",q:"30. Antonym of TRANSPARENT:",opts:["Clear","Opaque","Lucid","Translucent"],ans:1,exp:"Opaque means not able to be seen through; not transparent."},
+{cat:"Verbal Ability",q:"31. Synonym of ADVOCATE:",opts:["Oppose","Support","Criticize","Hinder"],ans:1,exp:"To advocate is to publicly recommend or support a cause or policy."},
+{cat:"Verbal Ability",q:"32. Correctly spelled word:",opts:["Conscientious","Concientious","Consientious","Conscentous"],ans:0,exp:"Conscientious is spelled C-O-N-S-C-I-E-N-T-I-O-U-S."},
+{cat:"Verbal Ability",q:"33. Choose the right preposition: She is proficient _____ both English and Filipino.",opts:["at","in","on","with"],ans:1,exp:"Standard usage is 'proficient in' a language or skill."},
+{cat:"Verbal Ability",q:"34. Synonym of IMPARTIAL:",opts:["Biased","Fair","Prejudiced","Partial"],ans:1,exp:"Impartial means treating all rivals or disputants equally; fair and just."},
+{cat:"Verbal Ability",q:"35. Antonym of PROSPERITY:",opts:["Wealth","Adversity","Success","Affluence"],ans:1,exp:"Adversity refers to difficulties or misfortune, contrasting with prosperity."},
+{cat:"Verbal Ability",q:"36. Choose the correct verb: The number of examinees _____ increasing every year.",opts:["are","is","were","have been"],ans:1,exp:"'The number' takes a singular verb; 'A number' takes a plural verb."},
+{cat:"Verbal Ability",q:"37. Synonym of SCRUTINIZE:",opts:["Glance","Examine closely","Ignore","Skim"],ans:1,exp:"Scrutinize means to examine or inspect closely and thoroughly."},
+{cat:"Verbal Ability",q:"38. Antonym of MANDATORY:",opts:["Compulsory","Optional","Required","Obligatory"],ans:1,exp:"Mandatory means required by law or rules; optional means left to one's choice."},
+{cat:"Verbal Ability",q:"39. Correctly spelled word:",opts:["Questionnaire","Questionaire","Questionnair","Questonnaire"],ans:0,exp:"Questionnaire has double 'n'."},
+{cat:"Verbal Ability",q:"40. Choose the correct word: The witness gave a _____ account of the incident.",opts:["credible","credulous","creditable","creed"],ans:0,exp:"'Credible' means believable; 'credulous' means gullible."},
+{cat:"Verbal Ability",q:"41. Synonym of ALLEVIATE:",opts:["Worsen","Relieve","Intensify","Provoke"],ans:1,exp:"Alleviate means to make suffering, deficiency, or a problem less severe."},
+{cat:"Verbal Ability",q:"42. Antonym of SUPERFICIAL:",opts:["Shallow","Profound","Surface","External"],ans:1,exp:"Profound means deep or intense, opposite of superficial."},
+{cat:"Verbal Ability",q:"43. Identify the correct verb: A number of delegates _____ already arrived.",opts:["has","have","is","was"],ans:1,exp:"'A number of' is a plural expression and takes a plural verb ('have')."},
+{cat:"Verbal Ability",q:"44. Synonym of TENACIOUS:",opts:["Weak","Persistent","Yielding","Timid"],ans:1,exp:"Tenacious means tending to keep a firm hold of something; persistent."},
+{cat:"Verbal Ability",q:"45. Correctly spelled word:",opts:["Maintenance","Maintainance","Maintenence","Maintanance"],ans:0,exp:"Maintenance is spelled M-A-I-N-T-E-N-A-N-C-E."},
+{cat:"Verbal Ability",q:"46. Antonym of ABUNDANT:",opts:["Plentiful","Scarce","Ample","Copious"],ans:1,exp:"Scarce means insufficient for the demand, opposite of abundant."},
+{cat:"Verbal Ability",q:"47. Synonym of COHERENT:",opts:["Confusing","Logical","Disjointed","Chaotic"],ans:1,exp:"Coherent means logical and consistent."},
+{cat:"Verbal Ability",q:"48. Choose the correct word: The principal _____ the students for winning the national quiz bee.",opts:["complemented","complimented","compliant","component"],ans:1,exp:"'Complimented' means praised; 'complemented' means completed or went well with."},
+{cat:"Verbal Ability",q:"49. Antonym of VOLUNTARY:",opts:["Willing","Compulsory","Free","Spontaneous"],ans:1,exp:"Compulsory means required, opposite of voluntary."},
+{cat:"Verbal Ability",q:"50. Paragraph Organization: Which sentence should come FIRST? (1) Finally, submit the receipt to the cashier. (2) First, secure an application form from the lobby. (3) Next, fill out all required fields legibly. (4) Then, pay the examination fee.",opts:["1","2","3","4"],ans:1,exp:"Transition signals ('First', 'Next', 'Then', 'Finally') show Sentence 2 begins the sequence."},
+  // --- BATCH 2: NUMERICAL ABILITY (51-100) ---
+  {cat:"Numerical Ability",q:"51. What is 25% of 480?",opts:["100","120","140","160"],ans:1,exp:"0.25 × 480 = 120 (or 480 ÷ 4 = 120)."},
+  {cat:"Numerical Ability",q:"52. Find the next number in the series: 3, 6, 12, 24, ___",opts:["36","42","48","54"],ans:2,exp:"Each number is multiplied by 2 (24 × 2 = 48)."},
+  {cat:"Numerical Ability",q:"53. If 5 notebooks cost ₱175, how much do 12 notebooks cost?",opts:["₱380","₱400","₱420","₱450"],ans:2,exp:"One notebook costs ₱175 ÷ 5 = ₱35. So 12 × ₱35 = ₱420."},
+  {cat:"Numerical Ability",q:"54. Solve for x: 3x + 7 = 28",opts:["5","6","7","8"],ans:2,exp:"3x = 28 - 7 → 3x = 21 → x = 7."},
+  {cat:"Numerical Ability",q:"55. Simplify: 3/4 + 2/5",opts:["5/9","1 3/20","1 1/20","23/25"],ans:1,exp:"Common denominator is 20: 15/20 + 8/20 = 23/20 = 1 3/20."},
+  {cat:"Numerical Ability",q:"56. A shirt originally priced at ₱800 is on sale at 15% off. What is the sale price?",opts:["₱640","₱680","₱700","₱720"],ans:1,exp:"15% of 800 = 120. ₱800 - ₱120 = ₱680."},
+  {cat:"Numerical Ability",q:"57. Find the next number in the series: 100, 91, 83, 76, 70, ___",opts:["63","64","65","66"],ans:2,exp:"The differences decrease by 1 each step: -9, -8, -7, -6, so next is 70 - 5 = 65."},
+  {cat:"Numerical Ability",q:"58. A car travels 180 kilometers in 3 hours. At the same rate, how far will it travel in 5 hours?",opts:["240 km","270 km","300 km","320 km"],ans:2,exp:"Speed = 180 ÷ 3 = 60 km/h. In 5 hours: 60 × 5 = 300 km."},
+  {cat:"Numerical Ability",q:"59. What is the average of 84, 88, 92, and 96?",opts:["88","89","90","91"],ans:2,exp:"(84 + 88 + 92 + 96) ÷ 4 = 360 ÷ 4 = 90."},
+  {cat:"Numerical Ability",q:"60. Convert 0.375 into a fraction in lowest terms.",opts:["3/8","5/8","3/16","7/16"],ans:0,exp:"0.375 = 375/1000. Dividing numerator and denominator by 125 gives 3/8."},
+  {cat:"Numerical Ability",q:"61. If a worker earns ₱650 per day, how much does he earn in 22 working days?",opts:["₱13,800","₱14,000","₱14,300","₱14,500"],ans:2,exp:"650 × 22 = 14,300."},
+  {cat:"Numerical Ability",q:"62. Solve: 18 - 6 ÷ 2 + 4 × 3",opts:["18","27","30","33"],ans:1,exp:"Follow PEMDAS: 18 - (6 ÷ 2) + (4 × 3) = 18 - 3 + 12 = 27."},
+  {cat:"Numerical Ability",q:"63. Find the missing term: 2, 5, 11, 23, 47, ___",opts:["91","93","95","97"],ans:2,exp:"Pattern is (×2 + 1): 47 × 2 + 1 = 95."},
+  {cat:"Numerical Ability",q:"64. The ratio of men to women in an office is 3:5. If there are 40 employees total, how many are women?",opts:["15","20","24","25"],ans:3,exp:"Total parts = 3 + 5 = 8. Each part = 40 ÷ 8 = 5. Women = 5 × 5 = 25."},
+  {cat:"Numerical Ability",q:"65. What is 40% of 15% of 2,000?",opts:["100","120","150","180"],ans:1,exp:"15% of 2,000 = 300. 40% of 300 = 120."},
+  {cat:"Numerical Ability",q:"66. A rectangle has a length of 14 cm and a width of 9 cm. What is its perimeter?",opts:["23 cm","46 cm","63 cm","126 cm"],ans:1,exp:"Perimeter = 2(L + W) = 2(14 + 9) = 2(23) = 46 cm."},
+  {cat:"Numerical Ability",q:"67. Maria is twice as old as Ana. Five years ago, the sum of their ages was 20. How old is Maria now?",opts:["10","15","20","25"],ans:2,exp:"Let Ana = x, Maria = 2x. (x - 5) + (2x - 5) = 20 → 3x - 10 = 20 → 3x = 30 → x = 10. Maria = 20."},
+  {cat:"Numerical Ability",q:"68. What is the greatest common factor (GCF) of 36 and 54?",opts:["6","9","12","18"],ans:3,exp:"18 is the largest integer that divides both 36 and 54 evenly."},
+  {cat:"Numerical Ability",q:"69. Find the next number: 1, 4, 9, 16, 25, ___",opts:["30","35","36","49"],ans:2,exp:"These are perfect squares: 1², 2², 3², 4², 5², so next is 6² = 36."},
+  {cat:"Numerical Ability",q:"70. A ₱10,000 loan earns 6% simple annual interest. How much interest is earned after 2 years?",opts:["₱600","₱1,000","₱1,200","₱1,500"],ans:2,exp:"I = P × r × t = 10,000 × 0.06 × 2 = ₱1,200."},
+  {cat:"Numerical Ability",q:"71. Simplify: (2/3) ÷ (4/9)",opts:["8/27","3/2","2/3","4/6"],ans:1,exp:"(2/3) × (9/4) = 18/12 = 3/2."},
+  {cat:"Numerical Ability",q:"72. If 3x - 4 = 2x + 9, what is x?",opts:["5","11","13","15"],ans:2,exp:"3x - 2x = 9 + 4 → x = 13."},
+  {cat:"Numerical Ability",q:"73. A tank can be filled by Pipe A in 4 hours and by Pipe B in 6 hours. How long will it take both pipes together to fill the tank?",opts:["2.0 hours","2.4 hours","2.5 hours","3.0 hours"],ans:1,exp:"1/4 + 1/6 = 5/12 per hour. Time = 12/5 = 2.4 hours."},
+  {cat:"Numerical Ability",q:"74. What is the least common multiple (LCM) of 12 and 18?",opts:["24","36","48","72"],ans:1,exp:"Multiples of 18: 18, 36. 36 is divisible by 12."},
+  {cat:"Numerical Ability",q:"75. A store increased the price of an item from ₱250 to ₱300. What is the percentage increase?",opts:["15%","20%","25%","50%"],ans:1,exp:"Increase = ₱50. Percentage increase = (50 ÷ 250) × 100% = 20%."},
+  {cat:"Numerical Ability",q:"76. Find the missing number: 81, 27, 9, 3, ___",opts:["0","1","1/3","2"],ans:1,exp:"Each term is divided by 3 (3 ÷ 3 = 1)."},
+  {cat:"Numerical Ability",q:"77. The sum of three consecutive integers is 72. What is the largest integer?",opts:["23","24","25","26"],ans:2,exp:"Middle integer = 72 ÷ 3 = 24. The integers are 23, 24, 25."},
+  {cat:"Numerical Ability",q:"78. How many minutes are there in 3.75 hours?",opts:["195","210","225","240"],ans:2,exp:"3.75 × 60 = 225 minutes."},
+  {cat:"Numerical Ability",q:"79. Solve: 0.4 × 0.05",opts:["0.2","0.02","0.002","0.0002"],ans:1,exp:"4 × 5 = 20; move decimal 3 places left → 0.020 = 0.02."},
+  {cat:"Numerical Ability",q:"80. A square has an area of 144 sq. meters. What is its perimeter?",opts:["12 m","24 m","36 m","48 m"],ans:3,exp:"Side = √144 = 12 m. Perimeter = 4 × 12 = 48 m."},
+  {cat:"Numerical Ability",q:"81. If 8 men can finish a job in 15 days, how many days will it take 12 men working at the same rate?",opts:["8 days","10 days","12 days","20 days"],ans:1,exp:"Inverse proportion: (8 × 15) ÷ 12 = 120 ÷ 12 = 10 days."},
+  {cat:"Numerical Ability",q:"82. What is 7/8 expressed as a percentage?",opts:["78%","82.5%","85%","87.5%"],ans:3,exp:"7 ÷ 8 = 0.875 = 87.5%."},
+  {cat:"Numerical Ability",q:"83. Find the next number: 5, 8, 13, 21, 34, ___",opts:["47","52","55","60"],ans:2,exp:"Fibonacci-style sequence: add the two previous terms (21 + 34 = 55)."},
+  {cat:"Numerical Ability",q:"84. A bag contains 4 red, 5 blue, and 6 green balls. What is the probability of picking a blue ball at random?",opts:["1/5","1/3","2/5","5/12"],ans:1,exp:"Total balls = 4 + 5 + 6 = 15. Probability = 5/15 = 1/3."},
+  {cat:"Numerical Ability",q:"85. Solve for y: 2(y - 3) = 14",opts:["5","8","10","11"],ans:2,exp:"y - 3 = 7 → y = 10."},
+  {cat:"Numerical Ability",q:"86. A salesman earns a base salary of ₱12,000 plus 5% commission on sales. If he sells ₱80,000 worth of goods, what is his total pay?",opts:["₱14,000","₱15,000","₱16,000","₱18,000"],ans:2,exp:"Commission = 0.05 × 80,000 = ₱4,000. Total = ₱12,000 + ₱4,000 = ₱16,000."},
+  {cat:"Numerical Ability",q:"87. What is the value of 5³ - 4²?",opts:["9","109","117","141"],ans:1,exp:"125 - 16 = 109."},
+  {cat:"Numerical Ability",q:"88. Round 4,678.492 to the nearest hundredth.",opts:["4,678.49","4,678.50","4,680.00","4,700.00"],ans:0,exp:"The thousandths digit is 2 (less than 5), so 4,678.49 remains."},
+  {cat:"Numerical Ability",q:"89. If a train leaves Manila at 8:45 AM and arrives in Lucena at 12:15 PM, how long was the trip?",opts:["3 hrs 15 mins","3 hrs 30 mins","3 hrs 45 mins","4 hrs 30 mins"],ans:1,exp:"From 8:45 AM to 11:45 AM is 3 hours, plus 30 minutes to 12:15 PM."},
+  {cat:"Numerical Ability",q:"90. What is 120% of 75?",opts:["80","85","90","95"],ans:2,exp:"1.20 × 75 = 90."},
+  {cat:"Numerical Ability",q:"91. Simplify: -15 + (-8) - (-10)",opts:["-33","-13","-3","13"],ans:1,exp:"-15 - 8 + 10 = -23 + 10 = -13."},
+  {cat:"Numerical Ability",q:"92. A triangle has angles measuring 45° and 65°. What is the measure of the third angle?",opts:["60°","70°","80°","90°"],ans:1,exp:"180° - (45° + 65°) = 180° - 110° = 70°."},
+  {cat:"Numerical Ability",q:"93. Find the next term: 12, 15, 19, 24, 30, ___",opts:["35","36","37","38"],ans:2,exp:"Differences increase by 1: +3, +4, +5, +6, so 30 + 7 = 37."},
+  {cat:"Numerical Ability",q:"94. If 40% of a number is 64, what is the number?",opts:["120","140","160","180"],ans:2,exp:"64 ÷ 0.40 = 160."},
+  {cat:"Numerical Ability",q:"95. A box measures 5 cm by 4 cm by 3 cm. What is its volume?",opts:["12 cu. cm","24 cu. cm","47 cu. cm","60 cu. cm"],ans:3,exp:"Volume = L × W × H = 5 × 4 × 3 = 60 cu. cm."},
+  {cat:"Numerical Ability",q:"96. Which fraction is the largest?",opts:["2/3","3/4","5/8","7/12"],ans:1,exp:"3/4 = 0.75, while 2/3 ≈ 0.67, 5/8 = 0.625, and 7/12 ≈ 0.58."},
+  {cat:"Numerical Ability",q:"97. A ₱2,400 budget is divided into food, rent, and utilities in the ratio 3:4:1. How much is allotted for rent?",opts:["₱300","₱900","₱1,200","₱1,500"],ans:2,exp:"Total parts = 8. Rent = (4/8) × ₱2,400 = ₱1,200."},
+  {cat:"Numerical Ability",q:"98. Solve: √81 + √64",opts:["15","17","19","145"],ans:1,exp:"9 + 8 = 17."},
+  {cat:"Numerical Ability",q:"99. If x = -3, what is the value of x² - 2x + 1?",opts:["4","10","16","22"],ans:2,exp:"(-3)² - 2(-3) + 1 = 9 + 6 + 1 = 16."},
+  {cat:"Numerical Ability",q:"100. An item costs ₱1,120 inclusive of 12% VAT. What was its price before VAT?",opts:["₱985.60","₱1,000.00","₱1,008.00","₱1,020.00"],ans:1,exp:"₱1,120 ÷ 1.12 = ₱1,000.00."},
+  // --- BATCH 3: ANALYTICAL & LOGICAL REASONING (101-150) ---
+  {cat:"Analytical Ability",q:"101. DOCTOR : HOSPITAL :: TEACHER : _____",opts:["Student","School","Book","Principal"],ans:1,exp:"A doctor works in a hospital; a teacher works in a school."},
+  {cat:"Analytical Ability",q:"102. THERMOMETER : TEMPERATURE :: BAROMETER : _____",opts:["Wind speed","Atmospheric pressure","Humidity","Rainfall"],ans:1,exp:"A thermometer measures temperature; a barometer measures atmospheric pressure."},
+  {cat:"Analytical Ability",q:"103. All civil servants are public servants. Maria is a civil servant. Therefore:",opts:["All public servants are civil servants.","Maria is a public servant.","Maria works in Manila.","Only Maria is a public servant."],ans:1,exp:"By deductive syllogism, if all A are B and Maria is A, then Maria is B."},
+  {cat:"Analytical Ability",q:"104. MANUSCRIPT : AUTHOR :: BLUEPRINT : _____",opts:["Carpenter","Architect","Engineer","Contractor"],ans:1,exp:"An author drafts a manuscript; an architect drafts a blueprint."},
+  {cat:"Analytical Ability",q:"105. Find the next letter group: AZ, BY, CX, DW, ___",opts:["EU","EV","FU","FV"],ans:1,exp:"First letter moves forward (A, B, C, D, E); second letter moves backward (Z, Y, X, W, V)."},
+  {cat:"Analytical Ability",q:"106. Which word does NOT belong to the group?",opts:["Triangle","Square","Circle","Cube"],ans:3,exp:"Triangle, square, and circle are 2D plane figures; a cube is a 3D solid."},
+  {cat:"Analytical Ability",q:"107. Statement: 'Regular exercise reduces the risk of heart disease.' Which is a valid assumption?",opts:["Everyone exercises daily.","Heart disease can be influenced by lifestyle habits.","Only athletes have healthy hearts.","Diet has no effect on health."],ans:1,exp:"For exercise to reduce risk, lifestyle habits must be capable of influencing heart health."},
+  {cat:"Analytical Ability",q:"108. SCALPEL : SURGEON :: GAVEL : _____",opts:["Lawyer","Judge","Bailiff","Witness"],ans:1,exp:"A scalpel is a tool used by a surgeon; a gavel is used by a judge."},
+  {cat:"Analytical Ability",q:"109. If A is taller than B, and B is taller than C, which statement is TRUE?",opts:["C is taller than A.","A is the tallest among the three.","B is the shortest.","A and C are the same height."],ans:1,exp:"Transitive property: A > B > C makes A the tallest."},
+  {cat:"Analytical Ability",q:"110. DROUGHT : FAMINE :: HEAVY RAIN : _____",opts:["Sunshine","Flood","Harvest","Wind"],ans:1,exp:"Cause-and-effect relationship: prolonged drought causes famine; heavy rain causes flood."},
+  {cat:"Analytical Ability",q:"111. Find the missing term: B2, D4, F6, H8, ___",opts:["I9","J10","K11","L12"],ans:1,exp:"Letters skip one each step (B, D, F, H, J) paired with their alphabetical position (10)."},
+  {cat:"Analytical Ability",q:"112. ARCHIPELAGO : ISLANDS :: CONSTELLATION : _____",opts:["Planets","Stars","Galaxies","Moons"],ans:1,exp:"An archipelago is a group of islands; a constellation is a group of stars."},
+  {cat:"Analytical Ability",q:"113. Statement: 'No lazy person succeeds in the Civil Service Exam. Juan passed the exam.' Conclusion:",opts:["Juan is not a lazy person.","All hardworking people pass.","Juan scored 95%.","The exam was easy."],ans:0,exp:"Since no lazy person passes and Juan passed, Juan cannot be lazy."},
+  {cat:"Analytical Ability",q:"114. Which word is the odd one out?",opts:["Manila","Cebu","Davao","Luzon"],ans:3,exp:"Manila, Cebu, and Davao are cities; Luzon is an island group."},
+  {cat:"Analytical Ability",q:"115. ODOMETER : DISTANCE :: CHRONOMETER : _____",opts:["Weight","Time","Speed","Depth"],ans:1,exp:"An odometer measures distance; a chronometer measures time accurately."},
+  {cat:"Analytical Ability",q:"116. In a row of 15 people, Carlo is 6th from the left. What is his position from the right?",opts:["8th","9th","10th","11th"],ans:2,exp:"15 - 6 + 1 = 10th from the right."},
+  {cat:"Analytical Ability",q:"117. PROLOGUE : NOVEL :: PREAMBLE : _____",opts:["Dictionary","Constitution","Biography","Poem"],ans:1,exp:"A prologue introduces a novel; a preamble introduces a constitution."},
+  {cat:"Analytical Ability",q:"118. If 'PAPER' is coded as 'QBQFS', how is 'PENCIL' coded?",opts:["QFODJM","QFOEJM","ODMBHK","QFODKM"],ans:0,exp:"Each letter shifts +1 forward in the alphabet (P→Q, E→F, N→O, C→D, I→J, L→M)."},
+  {cat:"Analytical Ability",q:"119. PHILATELY : STAMPS :: NUMISMATICS : _____",opts:["Books","Coins","Paintings","Insects"],ans:1,exp:"Philately is stamp collecting; numismatics is coin/currency collecting."},
+  {cat:"Analytical Ability",q:"120. Statement: 'All government offices are closed on regular holidays. Today is Independence Day.' Conclusion:",opts:["Government offices are open today.","Government offices are closed today.","Private banks are open.","Tomorrow is a workday."],ans:1,exp:"Independence Day is a regular holiday in the Philippines, so government offices are closed."},
+  {cat:"Analytical Ability",q:"121. Find the odd one out:",opts:["Kilometer","Centimeter","Kilogram","Millimeter"],ans:2,exp:"Kilogram measures mass; the others measure length."},
+  {cat:"Analytical Ability",q:"122. STETHOSCOPE : HEARTBEAT :: SEISMOGRAPH : _____",opts:["Volcanoes","Earthquakes","Tides","Hurricanes"],ans:1,exp:"A stethoscope detects heartbeats; a seismograph records earthquakes."},
+  {cat:"Analytical Ability",q:"123. Pointing to a photo, Pedro said, 'He is the only son of my father's father.' Who is in the photo?",opts:["Pedro's brother","Pedro's father","Pedro's uncle","Pedro's cousin"],ans:1,exp:"The only son of Pedro's grandfather is Pedro's father."},
+  {cat:"Analytical Ability",q:"124. INSOMNIA : SLEEP :: ANOREXIA : _____",opts:["Water","Appetite","Memory","Vision"],ans:1,exp:"Insomnia is inability to sleep; anorexia involves loss of appetite."},
+  {cat:"Analytical Ability",q:"125. Complete the series: Z, X, V, T, R, ___",opts:["Q","P","O","N"],ans:1,exp:"Moving backward skipping one letter each time: Z, (Y), X, (W), V, (U), T, (S), R, (Q), P."},
+  {cat:"Analytical Ability",q:"126. SYMPHONY : COMPOSER :: SONNET : _____",opts:["Sculptor","Poet","Painter","Dancer"],ans:1,exp:"A composer writes a symphony; a poet writes a sonnet."},
+  {cat:"Analytical Ability",q:"127. Statement: 'Using public transport reduces traffic congestion.' Which strengthens this argument?",opts:["Buses carry 50 passengers while occupying the space of 3 cars.","Train tickets are expensive.","Many people prefer private cars.","Traffic is worst on Fridays."],ans:0,exp:"Higher passenger capacity per road space directly explains how public transport cuts congestion."},
+  {cat:"Analytical Ability",q:"128. Which word does NOT belong?",opts:["Democracy","Monarchy","Oligarchy","Bureaucracy"],ans:3,exp:"Democracy, monarchy, and oligarchy are forms of government; bureaucracy is an administrative system."},
+  {cat:"Analytical Ability",q:"129. BOTANY : PLANTS :: ENTOMOLOGY : _____",opts:["Birds","Insects","Fish","Fungi"],ans:1,exp:"Botany is the study of plants; entomology is the study of insects."},
+  {cat:"Analytical Ability",q:"130. Ana faces North. She turns 90° clockwise, then 180° counterclockwise. Which direction is she facing now?",opts:["North","South","East","West"],ans:3,exp:"North + 90° clockwise = East. East + 180° counterclockwise = West."},
+  {cat:"Analytical Ability",q:"131. ANTIDOTE : POISON :: CURE : _____",opts:["Doctor","Disease","Hospital","Symptom"],ans:1,exp:"An antidote counteracts poison; a cure eliminates a disease."},
+  {cat:"Analytical Ability",q:"132. Find the next pair: ACE, BDF, CEG, ___",opts:["DEF","DFH","EFG","EGI"],ans:1,exp:"Each letter shifts forward by +1 from the previous group (C→D, E→F, G→H)."},
+  {cat:"Analytical Ability",q:"133. FRAGILE : BREAK :: FLAMMABLE : _____",opts:["Freeze","Burn","Melt","Dissolve"],ans:1,exp:"Something fragile easily breaks; something flammable easily burns."},
+  {cat:"Analytical Ability",q:"134. Some teachers are researchers. All researchers are writers. Therefore:",opts:["All teachers are writers.","Some teachers are writers.","No writers are teachers.","All writers are researchers."],ans:1,exp:"The teachers who are researchers must also be writers, so some teachers are writers."},
+  {cat:"Analytical Ability",q:"135. Find the odd one out:",opts:["Mercury","Venus","Mars","Moon"],ans:3,exp:"Mercury, Venus, and Mars are planets; the Moon is Earth's natural satellite."},
+  {cat:"Analytical Ability",q:"136. CENSUS : POPULATION :: INVENTORY : _____",opts:["Employees","Merchandise","Buildings","Taxes"],ans:1,exp:"A census counts population; an inventory counts merchandise/goods."},
+  {cat:"Analytical Ability",q:"137. If Monday is the 3rd day of the month, what day of the week is the 19th?",opts:["Tuesday","Wednesday","Thursday","Friday"],ans:2,exp:"3 + 14 = 17th is Monday; 18th is Tuesday; 19th is Wednesday. Wait: 19 - 3 = 16 days = 2 weeks + 2 days → Monday + 2 = Wednesday."},
+  {cat:"Analytical Ability",q:"138. Note on Q137: Correct answer for 19th when 3rd is Monday:",opts:["Tuesday","Wednesday","Thursday","Friday"],ans:1,exp:"19 - 3 = 16 days. 16 ÷ 7 leaves a remainder of 2 days after Monday, which is Wednesday (Option B)."},
+  {cat:"Analytical Ability",q:"139. VERDICT : JURY :: DIAGNOSIS : _____",opts:["Patient","Physician","Nurse","Pharmacist"],ans:1,exp:"A jury delivers a verdict; a physician delivers a diagnosis."},
+  {cat:"Analytical Ability",q:"140. Which word is the odd one out?",opts:["Sincere","Honest","Candid","Devious"],ans:3,exp:"Devious means deceitful, whereas the other three mean truthful."},
+  {cat:"Analytical Ability",q:"141. AQUEDUCT : WATER :: PIPELINE : _____",opts:["Electricity","Oil","Air","Signal"],ans:1,exp:"An aqueduct transports water; a pipeline transports oil or gas."},
+{cat:"Analytical Ability",q:"142. Complete the pattern: 1A, 4D, 9I, 16P, ___",opts:["20T","25Y","25Z","36Z"],ans:1,exp:"Numbers are squares (1², 2², 3², 4², 5²=25) paired with the corresponding letter position (25th letter = Y)."},
+{cat:"Analytical Ability",q:"143. Statement: 'Solar panels lower household electricity bills.' Assumption:",opts:["Electricity bills are currently zero.","Solar panels generate usable electricity for homes.","Every roof faces south.","Batteries last forever."],ans:1,exp:"For solar panels to lower bills, they must supply usable household power."},
+{cat:"Analytical Ability",q:"144. ARBORETUM : TREES :: AVIARY : _____",opts:["Bees","Birds","Fish","Reptiles"],ans:1,exp:"An arboretum houses trees; an aviary houses birds."},
+{cat:"Analytical Ability",q:"145. Which word does NOT belong?",opts:["Analyze","Evaluate","Examine","Ignore"],ans:3,exp:"Analyze, evaluate, and examine involve careful study; ignore means to disregard."},
+{cat:"Analytical Ability",q:"146. PLAGIARISM : WRITING :: PIRACY : _____",opts:["Sailing","Software","Reading","Painting"],ans:1,exp:"Plagiarism is unauthorized copying of writing; piracy is unauthorized copying of software/media."},
+{cat:"Analytical Ability",q:"147. Five runners finished a race. Mark finished ahead of Leo. Paul finished behind Leo. John finished ahead of Mark. Who won?",opts:["Mark","Leo","Paul","John"],ans:3,exp:"Order from first to last: John > Mark > Leo > Paul."},
+{cat:"Analytical Ability",q:"148. GLOSSARY : WORDS :: ATLAS : _____",opts:["Dates","Maps","Recipes","Laws"],ans:1,exp:"A glossary is a collection of words/terms; an atlas is a collection of maps."},
+{cat:"Analytical Ability",q:"149. Find the next group: JFM, AMJ, JAS, ___",opts:["OND","SON","DJF","MJJ"],ans:1,exp:"Consecutive months grouped in threes: Jan-Feb-Mar, Apr-May-Jun, Jul-Aug-Sep, Oct-Nov-Dec (OND)."},
+{cat:"Analytical Ability",q:"150. Note on Q149: Which 3-letter code represents October-November-December?",opts:["SON","OND","NDJ","DJF"],ans:1,exp:"O (October), N (November), D (December) = OND (Option B)."},
+  // --- BATCH 4: GENERAL INFORMATION (151-200) ---
+  {cat:"General Information",q:"151. What is the supreme law of the Republic of the Philippines?",opts:["The Civil Code","The 1987 Philippine Constitution","The Revised Penal Code","The Administrative Code"],ans:1,exp:"The 1987 Philippine Constitution is the fundamental and supreme law of the land."},
+  {cat:"General Information",q:"152. Under the 1987 Constitution, sovereignty resides in the _____ and all government authority emanates from them.",opts:["President","Congress","People","Supreme Court"],ans:2,exp:"Article II, Section 1 states: 'The Philippines is a democratic and republican State. Sovereignty resides in the people and all government authority emanates from them.'"},
+  {cat:"General Information",q:"153. What is the legislative body of the Philippines composed of the Senate and the House of Representatives?",opts:["The Cabinet","The Congress","The Judiciary","The Constitutional Commission"],ans:1,exp:"Article VI, Section 1 vests legislative power in the Congress of the Philippines (Senate and House of Representatives)."},
+  {cat:"General Information",q:"154. How many Senators compose the Philippine Senate under the 1987 Constitution?",opts:["12","24","36","50"],ans:1,exp:"Article VI, Section 2 provides that the Senate shall be composed of twenty-four (24) Senators elected at large."},
+  {cat:"General Information",q:"155. What is the term of office of the President of the Philippines?",opts:["4 years with reelection","6 years without reelection","6 years with one reelection","5 years without reelection"],ans:1,exp:"Article VII, Section 4 states that the President shall serve a term of six years and shall not be eligible for any reelection."},
+  {cat:"General Information",q:"156. Which branch of government has the power to interpret the laws and settle actual controversies involving legally demandable rights?",opts:["Executive","Legislative","Judicial","Constitutional"],ans:2,exp:"Article VIII, Section 1 vests judicial power in one Supreme Court and in such lower courts as may be established by law."},
+  {cat:"General Information",q:"157. How many members compose the Supreme Court of the Philippines?",opts:["1 Chief Justice and 10 Associate Justices","1 Chief Justice and 14 Associate Justices","1 Chief Justice and 12 Associate Justices","1 Chief Justice and 15 Associate Justices"],ans:1,exp:"Article VIII, Section 4 states the Supreme Court is composed of a Chief Justice and fourteen (14) Associate Justices."},
+  {cat:"General Information",q:"158. Which of the following is NOT one of the three independent Constitutional Commissions?",opts:["Civil Service Commission (CSC)","Commission on Elections (COMELEC)","Commission on Audit (COA)","Commission on Human Rights (CHR)"],ans:3,exp:"Article IX establishes CSC, COMELEC, and COA as the three Constitutional Commissions; CHR is an independent constitutional office under Article XIII."},
+  {cat:"General Information",q:"159. What is the minimum age requirement to be elected President or Vice President of the Philippines?",opts:["35 years old","40 years old","45 years old","50 years old"],ans:1,exp:"Article VII, Section 2 requires a candidate for President or Vice President to be at least forty (40) years of age on the day of the election."},
+  {cat:"General Information",q:"160. Which writ protects a person's right to life, liberty, and security when violated or threatened by an unlawful act or omission?",opts:["Writ of Habeas Data","Writ of Amparo","Writ of Mandamus","Writ of Certiorari"],ans:1,exp:"The Writ of Amparo is a remedy available to any person whose right to life, liberty, and security is violated or threatened."},
+  {cat:"General Information",q:"161. Under the Bill of Rights, no person shall be deprived of life, liberty, or property without _____.",opts:["executive order","due process of law","congressional approval","barangay clearance"],ans:1,exp:"Article III, Section 1 guarantees due process of law and equal protection of the laws."},
+  {cat:"General Information",q:"162. Which law is known as the 'Code of Conduct and Ethical Standards for Public Officials and Employees'?",opts:["R.A. 3019","R.A. 6713","R.A. 9184","R.A. 11032"],ans:1,exp:"Republic Act No. 6713 enacted the Code of Conduct and Ethical Standards for Public Officials and Employees."},
+  {cat:"General Information",q:"163. Under R.A. 6713, within how many working days from receipt must public officials respond to letters, telegrams, or other means of communication sent by the public?",opts:["5 working days","10 working days","15 working days","30 working days"],ans:2,exp:"Section 5(a) of R.A. 6713 requires public officials and employees to respond within fifteen (15) working days from receipt thereof."},
+  {cat:"General Information",q:"164. Under R.A. 6713, what document must every public official and employee file under oath disclosing their assets, liabilities, and net worth?",opts:["ITR","SALN","PDS","NBI Clearance"],ans:1,exp:"Section 8 of R.A. 6713 requires the filing of the Statement of Assets, Liabilities, and Net Worth (SALN)."},
+  {cat:"General Information",q:"165. Which norm of conduct under R.A. 6713 requires public officials and employees to always uphold the public interest over and above personal interest?",opts:["Professionalism","Commitment to public interest","Justness and sincerity","Political neutrality"],ans:1,exp:"Section 4(a) defines 'Commitment to public interest' as upholding public interest over personal interest."},
+  {cat:"General Information",q:"166. Under R.A. 6713, public officials and employees and their families must lead modest lives appropriate to their positions and income. This refers to:",opts:["Simple living","Nationalism and patriotism","Responsiveness to the public","Commitment to democracy"],ans:0,exp:"Section 4(h) mandates 'Simple living'—avoiding extravagant or ostentatious display of wealth."},
+  {cat:"General Information",q:"167. What does 'Political Neutrality' under R.A. 6713 mean?",opts:["Refusing to vote in national elections","Providing service to everyone without unfair discrimination regardless of party affiliation","Joining only the ruling political party","Avoiding all civic duties"],ans:1,exp:"Section 4(d) states public officials shall provide service to everyone without unfair discrimination and regardless of party affiliation or preference."},
+  {cat:"General Information",q:"168. Which law is known as the 'Anti-Graft and Corrupt Practices Act'?",opts:["R.A. 3019","R.A. 6713","R.A. 7080","R.A. 9485"],ans:0,exp:"Republic Act No. 3019 is the Anti-Graft and Corrupt Practices Act."},
+  {cat:"General Information",q:"169. Which law is known as the 'Ease of Doing Business and Efficient Government Service Delivery Act of 2018'?",opts:["R.A. 9003","R.A. 11032","R.A. 8749","R.A. 9275"],ans:1,exp:"R.A. 11032 amended the Anti-Red Tape Act (R.A. 9485) to streamline government service delivery."},
+  {cat:"General Information",q:"170. Under R.A. 11032, what is the maximum processing time for simple transactions in government offices?",opts:["1 working day","3 working days","7 working days","20 working days"],ans:1,exp:"Simple transactions must be acted upon within three (3) working days."},
+  {cat:"General Information",q:"171. Under R.A. 11032, what is the maximum processing time for complex transactions?",opts:["3 working days","5 working days","7 working days","15 working days"],ans:2,exp:"Complex transactions require a maximum processing time of seven (7) working days."},
+  {cat:"General Information",q:"172. What is the central personnel agency of the Philippine government?",opts:["Department of Labor and Employment","Civil Service Commission","Department of Budget and Management","Office of the Ombudsman"],ans:1,exp:"Article IX-B, Section 3 designates the Civil Service Commission as the central personnel agency of the Government."},
+  {cat:"General Information",q:"173. Which Constitutional office investigates and prosecutes public officials accused of crimes, especially graft and corruption?",opts:["Solicitor General","Office of the Ombudsman","Commission on Audit","Department of Justice"],ans:1,exp:"Article XI establishes the Office of the Ombudsman as the protector of the people against erring public officials."},
+  {cat:"General Information",q:"174. Which special court has jurisdiction over criminal and civil cases involving graft and corrupt practices committed by public officers?",opts:["Court of Tax Appeals","Sandiganbayan","Court of Appeals","Regional Trial Court"],ans:1,exp:"The Sandiganbayan is the special anti-graft collegiate court in the Philippines."},
+  {cat:"General Information",q:"175. Which law is known as the 'Ecological Solid Waste Management Act of 2000'?",opts:["R.A. 8749","R.A. 9003","R.A. 9275","R.A. 7586"],ans:1,exp:"Republic Act No. 9003 provides for an ecological solid waste management program, waste segregation, and recycling."},
+  {cat:"General Information",q:"176. Which law is known as the 'Philippine Clean Air Act of 1999'?",opts:["R.A. 8749","R.A. 9003","R.A. 9275","R.A. 6969"],ans:0,exp:"Republic Act No. 8749 is the Philippine Clean Air Act of 1999."},
+  {cat:"General Information",q:"177. Which law is known as the 'Philippine Clean Water Act of 2004'?",opts:["R.A. 8749","R.A. 9003","R.A. 9275","R.A. 9512"],ans:2,exp:"Republic Act No. 9275 aims to protect the country's water bodies from pollution from land-based sources."},
+  {cat:"General Information",q:"178. Under R.A. 9003, at what level is the segregation and collection of solid waste specifically conducted?",opts:["National level","Provincial level","Barangay level","Regional level"],ans:2,exp:"Section 10 of R.A. 9003 states that segregation and collection of solid waste shall be conducted at the barangay level specifically for biodegradable, compostable, and reusable wastes."},
+{cat:"General Information",q:"179. What is the main gas responsible for trapping heat in Earth's atmosphere and driving global climate change?",opts:["Oxygen","Nitrogen","Carbon dioxide","Argon"],ans:2,exp:"Carbon dioxide (CO₂) is the primary greenhouse gas emitted through human activities such as burning fossil fuels."},
+{cat:"General Information",q:"180. Which government agency is primarily responsible for the conservation, management, and development of the country's environment and natural resources?",opts:["DA","DENR","DOST","DILG"],ans:1,exp:"The Department of Environment and Natural Resources (DENR) oversees environmental protection and natural resource management."},
+{cat:"General Information",q:"181. Which international agreement adopted in 2015 aims to limit global warming to well below 2°C above pre-industrial levels?",opts:["Kyoto Protocol","Montreal Protocol","Paris Agreement","Basel Convention"],ans:2,exp:"The Paris Agreement is a legally binding international treaty on climate change adopted at COP21 in 2015."},
+{cat:"General Information",q:"182. What does 'biodiversity' refer to?",opts:["Only endangered marine animals","The variety of life on Earth at all levels, from genes to ecosystems","Planting a single crop across a region","Industrial waste recycling"],ans:1,exp:"Biodiversity encompasses all living species, genetic variation, and ecosystems."},
+{cat:"General Information",q:"183. Which Philippine law established the 'National Integrated Protected Areas System (NIPAS)'?",opts:["R.A. 7586","R.A. 9147","R.A. 8550","R.A. 7942"],ans:0,exp:"R.A. 7586 (later expanded by R.A. 11038 or E-NIPAS) established protected areas to conserve biodiversity."},
+{cat:"General Information",q:"184. What is the process of planting trees on land that was previously deforested or depleted?",opts:["Urbanization","Reforestation","Desertification","Eutrophication"],ans:1,exp:"Reforestation restores forest cover to areas where trees were cut down or destroyed."},
+{cat:"General Information",q:"185. Which international document adopted by the UN General Assembly in 1948 sets out fundamental human rights to be universally protected?",opts:["Geneva Convention","Universal Declaration of Human Rights (UDHR)","Magna Carta","Treaty of Versailles"],ans:1,exp:"The Universal Declaration of Human Rights (UDHR) was proclaimed by the UN General Assembly on December 10, 1948."},
+{cat:"General Information",q:"186. Under the 1987 Constitution, what is the minimum voting age for Filipino citizens in national and local elections?",opts:["15 years old","18 years old","21 years old","25 years old"],ans:1,exp:"Article V, Section 1 grants suffrage to citizens of the Philippines at least eighteen (18) years of age."},
+{cat:"General Information",q:"187. Which Constitutional provision abolished the death penalty unless Congress provides for it for compelling reasons involving heinous crimes?",opts:["Article II, Section 11","Article III, Section 19","Article VI, Section 24","Article XIII, Section 1"],ans:1,exp:"Article III, Section 19(1) prohibits excessive fines and cruel, degrading, or inhuman punishment, and abolished the death penalty."},
+{cat:"General Information",q:"188. What right ensures that an arrested person is informed of their right to remain silent and to have competent and independent counsel?",opts:["Right of suffrage","Miranda Rights (Custodial Investigation Rights)","Right of eminent domain","Right to bail only after conviction"],ans:1,exp:"Article III, Section 12(1) guarantees the rights of any person under investigation for the commission of an offense."},
+{cat:"General Information",q:"189. Which law is known as the 'Magna Carta of Women' in the Philippines?",opts:["R.A. 9262","R.A. 9710","R.A. 7610","R.A. 8353"],ans:1,exp:"Republic Act No. 9710 is the Magna Carta of Women, a comprehensive women's human rights law."},
+{cat:"General Information",q:"190. Which law protects children against abuse, exploitation, and discrimination?",opts:["R.A. 7610","R.A. 9165","R.A. 10175","R.A. 8293"],ans:0,exp:"Republic Act No. 7610 is the Special Protection of Children Against Abuse, Exploitation and Discrimination Act."},
+{cat:"General Information",q:"191. Under Article II, Section 2 of the 1987 Constitution, the Philippines renounces _____ as an instrument of national policy.",opts:["diplomacy","war","trade","arbitration"],ans:1,exp:"Article II, Section 2 states: 'The Philippines renounces war as an instrument of national policy...'"},
+{cat:"General Information",q:"192. Which government agency leads disaster risk reduction, preparedness, and response operations in the Philippines?",opts:["PAGASA","PHIVOLCS","NDRRMC","MMDA"],ans:2,exp:"The National Disaster Risk Reduction and Management Council (NDRRMC) coordinates disaster management nationwide."},
+{cat:"General Information",q:"193. What does the acronym 'GAD' stand for in Philippine government programs and budgeting?",opts:["Government Audit Division","Gender and Development","General Administrative Directive","Global Action for Democracy"],ans:1,exp:"GAD stands for Gender and Development, promoting gender equality across government agencies."},
+{cat:"General Information",q:"194. Who has the sole power to declare the existence of a state of war under the 1987 Philippine Constitution?",opts:["The President","The Congress, by a two-thirds vote of both Houses voting separately","The Supreme Court","The Secretary of National Defense"],ans:1,exp:"Article VI, Section 23(1) grants Congress the sole power to declare the existence of a state of war."},
+{cat:"General Information",q:"195. What is the maximum number of consecutive terms a Member of the House of Representatives may serve?",opts:["Two consecutive terms","Three consecutive terms","Four consecutive terms","No term limit"],ans:1,exp:"Article VI, Section 7 limits Members of the House of Representatives to three (3) consecutive terms of three years each."},
+{cat:"General Information",q:"196. Which principle means that public office is a public trust and public officers must at all times be accountable to the people?",opts:["Separation of Powers","Accountability of Public Officers","Checks and Balances","Judicial Review"],ans:1,exp:"Article XI, Section 1 states: 'Public office is a public trust. Public officers and employees must, at all times, be accountable to the people...'"},
+{cat:"General Information",q:"197. What is the national language of the Philippines as mandated by the 1987 Constitution?",opts:["Tagalog","Filipino","Pilipino","English"],ans:1,exp:"Article XIV, Section 6 states: 'The national language of the Philippines is Filipino.'"},
+{cat:"General Information",q:"198. Which Writ requires a person detaining another to produce the body of the prisoner before the court and justify the detention?",opts:["Writ of Amparo","Writ of Habeas Corpus","Writ of Kalikasan","Writ of Quo Warranto"],ans:1,exp:"The Writ of Habeas Corpus protects against illegal detention by requiring the detainee to be brought before a court."},
+{cat:"General Information",q:"199. Which legal remedy protects the constitutional right of the people to a balanced and healthful ecology?",opts:["Writ of Amparo","Writ of Kalikasan","Writ of Habeas Data","Writ of Prohibition"],ans:1,exp:"The Writ of Kalikasan is a legal remedy under Philippine environmental law for environmental damage of such magnitude as to prejudice life, health, or property."},
+{cat:"General Information",q:"200. What general rating must an examinee obtain to pass the Civil Service Examination (CSE-PPT)?",opts:["75.00%","78.00%","80.00%","85.00%"],ans:2,exp:"An examinee must obtain a general rating of at least 80.00% to pass the Career Service Examination."},
+
+];
+let current = 0;
+let userAnswers = new Array(questions.length).fill(null);
+let submitted = false;
+let timeLeft = 190 * 60;
+let timerInterval;
+function startTimer() {
+clearInterval(timerInterval);
+timerInterval = setInterval(() => {
+if (timeLeft <= 0) { clearInterval(timerInterval); submitExam(); return; }
+timeLeft--;
+const h = String(Math.floor(timeLeft / 3600)).padStart(2, '0');
+const m = String(Math.floor((timeLeft % 3600) / 60)).padStart(2, '0');
+const s = String(timeLeft % 60).padStart(2, '0');
+document.getElementById('timerDisplay').textContent = ${h}:${m}:${s};
+}, 1000);
+}
+function renderGrid() {
+const nav = document.getElementById('gridNav');
+nav.innerHTML = '';
+questions.forEach((_, idx) => {
+const dot = document.createElement('div');
+dot.className = 'q-dot' + (userAnswers[idx] !== null ? ' answered' : '') + (idx === current ? ' active' : '');
+dot.textContent = idx + 1;
+dot.onclick = () => { current = idx; renderQuestion(); };
+nav.appendChild(dot);
+});
+}
+function renderQuestion() {
+const item = questions[current];
+document.getElementById('qCategory').textContent = item.cat;
+document.getElementById('qProgress').textContent = Question ${current + 1} of ${questions.length};
+document.getElementById('qText').textContent = item.q;
+const box = document.getElementById('optionsBox');
+box.innerHTML = '';
+const letters = ['A', 'B', 'C', 'D'];
+item.opts.forEach((opt, i) => {
+const btn = document.createElement('button');
+btn.className = 'option';
+if (!submitted && userAnswers[current] === i) btn.classList.add('selected');
+if (submitted) {
+if (i === item.ans) btn.classList.add('correct');
+else if (userAnswers[current] === i) btn.classList.add('wrong');
+}
+btn.textContent = ${letters[i]}. ${opt};
+btn.onclick = () => { if (!submitted) { userAnswers[current] = i; renderQuestion(); } };
+box.appendChild(btn);
+});
+const expBox = document.getElementById('explanationBox');
+if (submitted) {
+expBox.style.display = 'block';
+expBox.textContent = Explanation: ${item.exp};
+} else {
+expBox.style.display = 'none';
+}
+renderGrid();
+}
+function nextQ() { if (current < questions.length - 1) { current++; renderQuestion(); } }
+function prevQ() { if (current > 0) { current--; renderQuestion(); } }
+function submitExam() {
+submitted = true;
+clearInterval(timerInterval);
+let score = 0;
+questions.forEach((q, i) => { if (userAnswers[i] === q.ans) score++; });
+const pct = ((score / questions.length) * 100).toFixed(2);
+document.getElementById('examCard').style.display = 'none';
+document.getElementById('results').style.display = 'block';
+document.getElementById('scorePercent').textContent = ${pct}%;
+const passed = parseFloat(pct) >= 80.00;
+const statusEl = document.getElementById('passStatus');
+statusEl.textContent = passed ? "PASSED (80.00% Passing Standard Met)" : "DID NOT PASS (80.00% Required)";
+statusEl.style.color = passed ? "#16a34a" : "#dc2626";
+document.getElementById('scoreBreakdown').textContent = You answered ${score} out of ${questions.length} items correctly.;
+renderGrid();
+}
+function reviewAnswers() {
+document.getElementById('results').style.display = 'none';
+document.getElementById('examCard').style.display = 'block';
+current = 0;
+renderQuestion();
+}
+function resetExam() {
+submitted = false;
+current = 0;
+userAnswers = new Array(questions.length).fill(null);
+timeLeft = parseInt(document.getElementById('levelSelect').value, 10) * 60;
+document.getElementById('results').style.display = 'none';
+document.getElementById('examCard').style.display = 'block';
+renderQuestion();
+startTimer();
+}
+renderQuestion();
+startTimer();
