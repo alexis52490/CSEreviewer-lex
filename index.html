@@ -73,7 +73,7 @@
     <strong>Question Navigator</strong>
     <div style="font-size:0.8rem;color:#64748b;margin-top:4px;">Passing Mark: 80.00%</div>
     <div class="grid-nav" id="gridNav"></div>
-    <button class="btn btn-submit" id="submitBtn" onclick="submitExam()">Submit & Grade Exam</button>
+    <button class="btn btn-submit" id="submitBtn" onclick="submitExam()">Submit & Grade Exam</button>,
   </div>
 </div>
 
@@ -182,7 +182,7 @@ const questions = [
   {cat:"Numerical Ability",q:"98. Solve: √81 + √64",opts:["15","17","19","145"],ans:1,exp:"9 + 8 = 17."},
   {cat:"Numerical Ability",q:"99. If x = -3, what is the value of x² - 2x + 1?",opts:["4","10","16","22"],ans:2,exp:"(-3)² - 2(-3) + 1 = 9 + 6 + 1 = 16."},
   {cat:"Numerical Ability",q:"100. An item costs ₱1,120 inclusive of 12% VAT. What was its price before VAT?",opts:["₱985.60","₱1,000.00","₱1,008.00","₱1,020.00"],ans:1,exp:"₱1,120 ÷ 1.12 = ₱1,000.00."},
-  // --- BATCH 3: ANALYTICAL & LOGICAL REASONING (101-150) ---
+  // --- BATCH 3: ANALYTICAL & LOGICAL REASONING (101-150) ---,
   {cat:"Analytical Ability",q:"101. DOCTOR : HOSPITAL :: TEACHER : _____",opts:["Student","School","Book","Principal"],ans:1,exp:"A doctor works in a hospital; a teacher works in a school."},
   {cat:"Analytical Ability",q:"102. THERMOMETER : TEMPERATURE :: BAROMETER : _____",opts:["Wind speed","Atmospheric pressure","Humidity","Rainfall"],ans:1,exp:"A thermometer measures temperature; a barometer measures atmospheric pressure."},
   {cat:"Analytical Ability",q:"103. All civil servants are public servants. Maria is a civil servant. Therefore:",opts:["All public servants are civil servants.","Maria is a public servant.","Maria works in Manila.","Only Maria is a public servant."],ans:1,exp:"By deductive syllogism, if all A are B and Maria is A, then Maria is B."},
@@ -285,96 +285,109 @@ const questions = [
 {cat:"General Information",q:"199. Which legal remedy protects the constitutional right of the people to a balanced and healthful ecology?",opts:["Writ of Amparo","Writ of Kalikasan","Writ of Habeas Data","Writ of Prohibition"],ans:1,exp:"The Writ of Kalikasan is a legal remedy under Philippine environmental law for environmental damage of such magnitude as to prejudice life, health, or property."},
 {cat:"General Information",q:"200. What general rating must an examinee obtain to pass the Civil Service Examination (CSE-PPT)?",opts:["75.00%","78.00%","80.00%","85.00%"],ans:2,exp:"An examinee must obtain a general rating of at least 80.00% to pass the Career Service Examination."},
 
+  {cat:"General Information",q:"200. What general rating must an examinee obtain to pass the Civil Service Examination (CSE-PPT)?",opts:["75.00%","78.00%","80.00%","85.00%"],ans:2,exp:"An examinee must obtain a general rating of at least 80.00% to pass the Career Service Examination."}
 ];
+
 let current = 0;
 let userAnswers = new Array(questions.length).fill(null);
 let submitted = false;
 let timeLeft = 190 * 60;
 let timerInterval;
+
 function startTimer() {
-clearInterval(timerInterval);
-timerInterval = setInterval(() => {
-if (timeLeft <= 0) { clearInterval(timerInterval); submitExam(); return; }
-timeLeft--;
-const h = String(Math.floor(timeLeft / 3600)).padStart(2, '0');
-const m = String(Math.floor((timeLeft % 3600) / 60)).padStart(2, '0');
-const s = String(timeLeft % 60).padStart(2, '0');
-document.getElementById('timerDisplay').textContent = ${h}:${m}:${s};
-}, 1000);
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    if (timeLeft <= 0) { clearInterval(timerInterval); submitExam(); return; }
+    timeLeft--;
+    const h = String(Math.floor(timeLeft / 3600)).padStart(2, '0');
+    const m = String(Math.floor((timeLeft % 3600) / 60)).padStart(2, '0');
+    const s = String(timeLeft % 60).padStart(2, '0');
+    document.getElementById('timerDisplay').textContent = `${h}:${m}:${s}`;
+  }, 1000);
 }
+
 function renderGrid() {
-const nav = document.getElementById('gridNav');
-nav.innerHTML = '';
-questions.forEach((_, idx) => {
-const dot = document.createElement('div');
-dot.className = 'q-dot' + (userAnswers[idx] !== null ? ' answered' : '') + (idx === current ? ' active' : '');
-dot.textContent = idx + 1;
-dot.onclick = () => { current = idx; renderQuestion(); };
-nav.appendChild(dot);
-});
+  const nav = document.getElementById('gridNav');
+  nav.innerHTML = '';
+  questions.forEach((_, idx) => {
+    const dot = document.createElement('div');
+    dot.className = 'q-dot' + (userAnswers[idx] !== null ? ' answered' : '') + (idx === current ? ' active' : '');
+    dot.textContent = idx + 1;
+    dot.onclick = () => { current = idx; renderQuestion(); };
+    nav.appendChild(dot);
+  });
 }
+
 function renderQuestion() {
-const item = questions[current];
-document.getElementById('qCategory').textContent = item.cat;
-document.getElementById('qProgress').textContent = Question ${current + 1} of ${questions.length};
-document.getElementById('qText').textContent = item.q;
-const box = document.getElementById('optionsBox');
-box.innerHTML = '';
-const letters = ['A', 'B', 'C', 'D'];
-item.opts.forEach((opt, i) => {
-const btn = document.createElement('button');
-btn.className = 'option';
-if (!submitted && userAnswers[current] === i) btn.classList.add('selected');
-if (submitted) {
-if (i === item.ans) btn.classList.add('correct');
-else if (userAnswers[current] === i) btn.classList.add('wrong');
+  const item = questions[current];
+  document.getElementById('qCategory').textContent = item.cat;
+  document.getElementById('qProgress').textContent = `Question ${current + 1} of ${questions.length}`;
+  document.getElementById('qText').textContent = item.q;
+  const box = document.getElementById('optionsBox');
+  box.innerHTML = '';
+  const letters = ['A', 'B', 'C', 'D'];
+  item.opts.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option';
+    if (!submitted && userAnswers[current] === i) btn.classList.add('selected');
+    if (submitted) {
+      if (i === item.ans) btn.classList.add('correct');
+      else if (userAnswers[current] === i) btn.classList.add('wrong');
+    }
+    btn.textContent = `${letters[i]}. ${opt}`;
+    btn.onclick = () => { if (!submitted) { userAnswers[current] = i; renderQuestion(); } };
+    box.appendChild(btn);
+  });
+  const expBox = document.getElementById('explanationBox');
+  if (submitted) {
+    expBox.style.display = 'block';
+    expBox.textContent = `Explanation: ${item.exp}`;
+  } else {
+    expBox.style.display = 'none';
+  }
+  renderGrid();
 }
-btn.textContent = ${letters[i]}. ${opt};
-btn.onclick = () => { if (!submitted) { userAnswers[current] = i; renderQuestion(); } };
-box.appendChild(btn);
-});
-const expBox = document.getElementById('explanationBox');
-if (submitted) {
-expBox.style.display = 'block';
-expBox.textContent = Explanation: ${item.exp};
-} else {
-expBox.style.display = 'none';
-}
-renderGrid();
-}
+
 function nextQ() { if (current < questions.length - 1) { current++; renderQuestion(); } }
 function prevQ() { if (current > 0) { current--; renderQuestion(); } }
+
 function submitExam() {
-submitted = true;
-clearInterval(timerInterval);
-let score = 0;
-questions.forEach((q, i) => { if (userAnswers[i] === q.ans) score++; });
-const pct = ((score / questions.length) * 100).toFixed(2);
-document.getElementById('examCard').style.display = 'none';
-document.getElementById('results').style.display = 'block';
-document.getElementById('scorePercent').textContent = ${pct}%;
-const passed = parseFloat(pct) >= 80.00;
-const statusEl = document.getElementById('passStatus');
-statusEl.textContent = passed ? "PASSED (80.00% Passing Standard Met)" : "DID NOT PASS (80.00% Required)";
-statusEl.style.color = passed ? "#16a34a" : "#dc2626";
-document.getElementById('scoreBreakdown').textContent = You answered ${score} out of ${questions.length} items correctly.;
-renderGrid();
+  submitted = true;
+  clearInterval(timerInterval);
+  let score = 0;
+  questions.forEach((q, i) => { if (userAnswers[i] === q.ans) score++; });
+  const pct = ((score / questions.length) * 100).toFixed(2);
+  document.getElementById('examCard').style.display = 'none';
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('scorePercent').textContent = `${pct}%`;
+  const passed = parseFloat(pct) >= 80.00;
+  const statusEl = document.getElementById('passStatus');
+  statusEl.textContent = passed ? "PASSED (80.00% Passing Standard Met)" : "DID NOT PASS (80.00% Required)";
+  statusEl.style.color = passed ? "#16a34a" : "#dc2626";
+  document.getElementById('scoreBreakdown').textContent = `You answered ${score} out of ${questions.length} items correctly.`;
+  renderGrid();
 }
+
 function reviewAnswers() {
-document.getElementById('results').style.display = 'none';
-document.getElementById('examCard').style.display = 'block';
-current = 0;
-renderQuestion();
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('examCard').style.display = 'block';
+  current = 0;
+  renderQuestion();
 }
+
 function resetExam() {
-submitted = false;
-current = 0;
-userAnswers = new Array(questions.length).fill(null);
-timeLeft = parseInt(document.getElementById('levelSelect').value, 10) * 60;
-document.getElementById('results').style.display = 'none';
-document.getElementById('examCard').style.display = 'block';
-renderQuestion();
-startTimer();
+  submitted = false;
+  current = 0;
+  userAnswers = new Array(questions.length).fill(null);
+  timeLeft = parseInt(document.getElementById('levelSelect').value, 10) * 60;
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('examCard').style.display = 'block';
+  renderQuestion();
+  startTimer();
 }
+
 renderQuestion();
 startTimer();
+</script>
+</body>
+</html>
